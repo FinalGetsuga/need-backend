@@ -15,5 +15,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Term> Terms { get; set; }
     public DbSet<WorkingDay> WorkingDays { get; set; }
     public DbSet<WorkSchedule> WorkSchedules { get; set; }
-    
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    }
 }
