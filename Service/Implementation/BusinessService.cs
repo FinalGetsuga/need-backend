@@ -38,7 +38,7 @@ public class BusinessService : IBusinessService
         return entity;
     }
 
-    public async Task<Business> CreateAsync(BusinessDto dto)
+    public async Task<Business> CreateAsync(string userId, BusinessDto dto)
     {
         var business = new Business()
         {
@@ -47,9 +47,8 @@ public class BusinessService : IBusinessService
             Address = dto.Address,
             ImageUrl = dto.ImageUrl,
             WebsiteUrl = dto.WebsiteUrl,
-            OwnerId = dto.OwnerId,
+            OwnerId = userId,
             CategoryId = dto.CategoryId,
-            WorkScheduleId = dto.WorkScheduleId
         };
         
         business.Owner.IsOwner = true;
@@ -66,9 +65,7 @@ public class BusinessService : IBusinessService
         entity.Address = dto.Address;
         entity.ImageUrl = dto.ImageUrl;
         entity.WebsiteUrl = dto.WebsiteUrl;
-        entity.OwnerId = dto.OwnerId;
         entity.CategoryId = dto.CategoryId;
-        entity.WorkScheduleId = dto.WorkScheduleId;
         
         return await _repository.UpdateAsync(entity);
     }

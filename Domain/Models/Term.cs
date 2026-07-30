@@ -17,6 +17,5 @@ public class Term : BaseEntity
 
     public TermStatus Status { get; set; } = TermStatus.Available;
     
-    public Guid BookingId { get; set; }
     public Booking? Booking { get; set; }
 }

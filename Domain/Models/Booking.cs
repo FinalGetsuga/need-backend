@@ -16,6 +16,5 @@ public class Booking : BaseEntity
     public string? Notes { get; set; }
     public DateTime BookedAt { get; set; } = DateTime.UtcNow;
     
-    public Guid ReviewId { get; set; }
     public Review? Review { get; set; }
 }

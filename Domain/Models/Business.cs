@@ -18,7 +18,6 @@ public class Business : BaseEntity
     public Guid CategoryId { get; set; }
     public Category? Category { get; set; }
     
-    public Guid WorkScheduleId { get; set; }
     public WorkSchedule? WorkSchedule { get; set; }
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();

@@ -8,7 +8,9 @@ public class AppUser : IdentityUser
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     
-    public Guid BusinessId { get; set; }
+    public string? FirebaseUserId { get; set; }
+    public string? DisplayName { get; set; }
+    
     public Business? Business { get; set; }
 
     public bool IsOwner { get; set; } = false;

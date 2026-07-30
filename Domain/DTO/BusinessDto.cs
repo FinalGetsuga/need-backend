@@ -9,9 +9,6 @@ public class BusinessDto
     public string? ImageUrl { get; set; }
     public string? WebsiteUrl { get; set; }
     
-    public string? OwnerId { get; set; }
-    
     public Guid CategoryId { get; set; }
     
-    public Guid WorkScheduleId { get; set; }
 }
