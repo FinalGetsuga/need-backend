@@ -5,7 +5,7 @@ namespace Domain.Models;
 public class WorkSchedule : BaseEntity
 {
     public Guid BusinessId { get; set; }
-    public Business? Business { get; set; }
+    public Business Business { get; set; } = default!;
     
     public int TermDurationMinutes { get; set; }
     public DateOnly LastGeneratedThroughDate { get; set; }

@@ -6,10 +6,10 @@ namespace Domain.Models;
 public class Term : BaseEntity
 {
     public Guid EmployeeId { get; set; }
-    public Employee? Employee { get; set; }
+    public Employee Employee { get; set; } = default!;
     
     public Guid BusinessId { get; set; }
-    public Business? Business { get; set; }
+    public Business Business { get; set; } = default!;
     
     public DateOnly Date { get; set; }
     public TimeOnly StartTime { get; set; }

@@ -7,10 +7,10 @@ namespace Domain.Models;
 public class Booking : BaseEntity
 {
     public Guid TermId { get; set; }
-    public Term? Term { get; set; }
-    
-    public string? CustomerId { get; set; }
-    public AppUser? Customer { get; set; }
+    public Term Term { get; set; } = default!;
+
+    public string CustomerId { get; set; } = default!;
+    public AppUser Customer { get; set; } = default!;
 
     public BookingStatus Status { get; set; } = BookingStatus.Confirmed;
     public string? Notes { get; set; }

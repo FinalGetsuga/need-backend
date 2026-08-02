@@ -1,9 +1,13 @@
+using System.Security.Claims;
 using System.Text;
 using Domain.Identity;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,6 +18,8 @@ using Repository.Interface;
 using Scalar.AspNetCore;
 using Service.Implementation;
 using Service.Interface;
+using Web.Auth;
+using Web.Mappers;
 
 namespace Web;
 
@@ -66,6 +72,12 @@ public class Program
             });
         });
         
+        // Hangfire
+        builder.Services.AddHangfire(config => config
+            .UsePostgreSqlStorage(options =>
+                options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
+        builder.Services.AddHangfireServer();
+        
         // Database
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -85,6 +97,7 @@ public class Program
                 options.Authority = $"https://securetoken.google.com/{projectId}";
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
+                    RoleClaimType = ClaimTypes.Role,
                     ValidateIssuer = true,
                     ValidIssuer = $"https://securetoken.google.com/{projectId}",
                     ValidateAudience = true,
@@ -117,6 +130,8 @@ public class Program
                             {
                                 UserName = uid,
                                 Email = email,
+                                FirstName = email,
+                                LastName = email,
                                 FirebaseUserId = uid,
                                 DisplayName = context.Principal?.FindFirst("name")?.Value ?? string.Empty
                             };
@@ -124,6 +139,16 @@ public class Program
                             await userManager.CreateAsync(user);
                             await userManager.AddLoginAsync(user,
                                 new UserLoginInfo("Firebase", uid, "Firebase"));
+                        }
+
+                        var roles = await userManager.GetRolesAsync(user);
+                        var identity = (ClaimsIdentity)context.Principal.Identity!;
+                        
+                        identity.AddClaim(new Claim(AppClaimTypes.InternalUserId, user.Id));
+                        
+                        foreach (var role in roles)
+                        {
+                            identity.AddClaim(new Claim(ClaimTypes.Role, role));
                         }
                     }
                 };
@@ -157,8 +182,26 @@ public class Program
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         
         // Services
+        builder.Services.AddScoped<IBookingService, BookingService>();
         builder.Services.AddScoped<IBusinessService, BusinessService>();
-
+        builder.Services.AddScoped<ICategoryService, CategoryService>();
+        builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+        builder.Services.AddScoped<IReviewService, ReviewService>();
+        builder.Services.AddScoped<ITermGenerationService, TermGenerationService>();
+        builder.Services.AddScoped<IWorkScheduleService, WorkScheduleService>();
+        
+        // Helper
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+    
+        // Mappers
+        builder.Services.AddScoped<BookingMapper>();
+        builder.Services.AddScoped<BusinessMapper>();
+        builder.Services.AddScoped<CategoryMapper>();
+        builder.Services.AddScoped<EmployeeMapper>();
+        builder.Services.AddScoped<ReviewMapper>();
+        builder.Services.AddScoped<WorkScheduleMapper>();
+        
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -166,20 +209,40 @@ public class Program
         {
             app.MapOpenApi();
             app.MapScalarApiReference();
+            app.UseHangfireDashboard();
         }
 
         app.UseHttpsRedirection();
         
         app.UseExceptionHandler(appBuilder => appBuilder.Run(async context =>
         {
-            context.Response.StatusCode = 500;
-            await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+            var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+            var (statusCode, message) = exception switch
+            {
+                UnauthorizedAccessException => (StatusCodes.Status403Forbidden, exception.Message),
+                InvalidOperationException => (StatusCodes.Status400BadRequest, exception.Message),
+                _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+            };
+
+            context.Response.StatusCode = statusCode;
+            await context.Response.WriteAsJsonAsync(new { error = message });
         }));
 
         app.UseCors("FrontendPolicy");
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+        
+        RecurringJob.AddOrUpdate<IBookingService>(
+            "complete-past-bookings",
+            x => x.MarkPastBookingsCompletedAsync(),
+            "5 0 * * *");
+        
+        RecurringJob.AddOrUpdate<ITermGenerationService>(
+            "generate-terms",
+            x => x.GenerateForAllBusinessesAsync(),
+            "15 0 * * *");
         
         app.Run();
     }

@@ -11,9 +11,9 @@ public class Business : BaseEntity
     public string Address { get; set; } = default!;
     public string? ImageUrl { get; set; }
     public string? WebsiteUrl { get; set; }
-    
-    public string? OwnerId { get; set; }
-    public AppUser? Owner { get; set; }
+
+    public string OwnerId { get; set; } = default!;
+    public AppUser Owner { get; set; } = default!;
     
     public Guid CategoryId { get; set; }
     public Category? Category { get; set; }
